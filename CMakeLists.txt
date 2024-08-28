@@ -7,13 +7,14 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 
-find_package(Qt6 COMPONENTS
-        Core
-        Widgets
-        REQUIRED)
+find_package(Qt6 COMPONENTS Core Widgets REQUIRED)
 
-add_executable(app main.cpp)
+include_directories(forms)
 
+add_executable(app
+        forms/form.cpp
+        run/main.cpp
+)
 target_link_libraries(app
         Qt::Core
         Qt6::Widgets
