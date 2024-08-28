@@ -1,11 +1,11 @@
 #include <QApplication>
-#include "form.h"
+#include "Frame.h"
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
-    Form window;
+    Frame window;
     window.show();
 
     return app.exec();
