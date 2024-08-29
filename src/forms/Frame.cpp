@@ -1,4 +1,3 @@
-#include "Frame.h"
 #include <QLabel>
 #include <QPushButton>
 #include <QLineEdit>
@@ -8,6 +7,10 @@
 #include <QScreen>
 #include <QTimer>
 #include <QMessageBox>
+
+#include "Frame.h"
+#include "Person.h"
+#include "SearchParallelism.h"
 
 Frame::Frame(QWidget *parent) : QWidget(parent)
 {
@@ -46,7 +49,7 @@ Frame::Frame(QWidget *parent) : QWidget(parent)
     centralLayout->addWidget(labelResult);
 
     setLayout(centralLayout);
-    setWindowTitle("BUSQUEDA POR RUC");
+    setWindowTitle("CONSULTA RUC");
     resize(700, 300);
 
     QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
@@ -74,7 +77,14 @@ void Frame::onSearchClicked()
 
     if (radioButtonParallelSearch->isChecked()) {
         labelResult->setText("Executing parallel search...");
-        // Call the specific function for parallel search
+
+        std::vector<Person> persons = performParallelSearch();
+        QString resultText;
+        for (const Person& person : persons) {
+            resultText += QString::fromStdString(person.toString()) + "\n";
+        }
+        labelResult->setText(resultText);
+
     } else if (radioButtonRAMSearch->isChecked()) {
         labelResult->setText("Executing RAM search...");
         // Call the specific function for RAM search

@@ -1,39 +1,23 @@
-#include <string>
-#include <iostream>
+#include "Person.h"
 
-class Person {
-    private:
-        std::string idPerson;
-        std::string firstName;
-        std::string surName;
-        std::string DNI;
-        int age;
+Person::Person(const std::string& ruc, const std::string& name, const std::string& status, const std::string& domicileCondition)
+{
+    RUC = ruc;
+    NAME = name;
+    STATUS = status;
+    DOMICILECONDITION = domicileCondition;
+}
 
-    public:
-        // Constructor
-        Person(const std::string& id, const std::string& first, const std::string& last, const std::string& dni, int age)
-            : idPerson(id), firstName(first), surName(last), DNI(dni), age(age) {}
+    std::string Person::getRuc() const { return RUC; }
+    std::string Person::getName() const { return NAME; }
+    std::string Person::getStatus() const { return STATUS; }
+    std::string Person::getDomicileCondition() const { return DOMICILECONDITION; }
 
-        // Getters
-        std::string getIdPerson() const { return idPerson; }
-        std::string getFirstName() const { return firstName; }
-        std::string getSurName() const { return surName; }
-        std::string getDNI() const { return DNI; }
-        int getAge() const { return age; }
+    void Person::setRuc(const std::string& ruc) { RUC = ruc; }
+    void Person::setName(const std::string& name) { NAME = name; }
+    void Person::setStatus(const std::string& status) { STATUS = status; }
+    void Person::setDomicileCondition(const std::string& domicileCondition) { DOMICILECONDITION = domicileCondition; }
 
-        // Setters
-        void setIdPerson(const std::string& id) { idPerson = id; }
-        void setFirstName(const std::string& first) { firstName = first; }
-        void setSurName(const std::string& last) { surName = last; }
-        void setDNI(const std::string& dni) { DNI = dni; }
-        void setAge(int a) { age = a; }
-
-        std::string toString() const {
-            return idPerson + "," + firstName + "," + surName + "," + DNI + "," + std::to_string(age);
-        }
-
-        friend std::ostream& operator<<(std::ostream& os, const Person& person) {
-            os << person.toString();
-            return os;
-        }
-};
+std::string Person::toString() const {
+    return RUC + "," + NAME + "," + STATUS + "," + DOMICILECONDITION;
+}
