@@ -18,11 +18,14 @@ add_executable(app
         src/business/SearchParallelism.cpp
         src/business/SearchParallelism.h
         src/business/SearchRamMemory.cpp
+        src/business/SearchRamMemory.h
         src/business/SearchSimple.cpp
         src/object/Person.cpp
+        src/object/Person.h
         src/helper/FileReader.h
         src/helper/FileReader.cpp
-        src/object/Person.h
+        src/helper/DetermineTime.cpp
+        src/helper/DetermineTime.h
 )
 
 target_link_libraries(app

@@ -3,24 +3,26 @@
 #include <sstream>
 #include <iostream>
 
-std::vector<Person> FileReader::readPersonsFromFile(const std::string& filename) {
-    std::vector<Person> persons;
-    std::ifstream file(filename);
+using namespace std;
+
+vector<Person> FileReader::readPersonsFromFile(const string& filename) {
+    vector<Person> persons;
+    ifstream file(filename);
 
     if (!file.is_open()) {
-        std::cerr << "Error: Could not open file " << filename << std::endl;
+        cerr << "Error: No se pudo abrir el archivo." << filename << endl;
         return persons;
     }
 
-    std::string line;
-    std::getline(file, line);
+    string line;
+    getline(file, line);
 
-    while (std::getline(file, line)) {
-        std::stringstream ss(line);
-        std::string token;
-        std::vector<std::string> tokens;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        string token;
+        vector<string> tokens;
 
-        while (std::getline(ss, token, '|')) {
+        while (getline(ss, token, '|')) {
             tokens.push_back(token);
         }
 
@@ -28,7 +30,7 @@ std::vector<Person> FileReader::readPersonsFromFile(const std::string& filename)
             Person person(tokens[0], tokens[1], tokens[2], tokens[3]);
             persons.push_back(person);
         } else {
-            std::cerr << "Warning: Line format incorrect, skipping line: " << line << std::endl;
+            cerr << "Warning: Formato de línea incorrecto, saltando línea: " << line << endl;
         }
     }
 

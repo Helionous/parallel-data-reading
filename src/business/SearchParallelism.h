@@ -2,8 +2,11 @@
 #define SEARCH_PARALLELISM_H
 
 #include <string>
+#include <utility>
 #include "Person.h"
 
-Person performParallelSearch(const std::string& ruc);
+using namespace std;
+
+pair<Person, long long> performParallelSearch(const string& ruc);
 
 #endif

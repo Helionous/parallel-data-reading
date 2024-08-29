@@ -12,6 +12,7 @@
 #include "Frame.h"
 #include "Person.h"
 #include "SearchParallelism.h"
+#include "SearchRamMemory.h"
 
 Frame::Frame(QWidget *parent) : QWidget(parent) {
     labelCriteria = new QLabel("Métodos de búsqueda");
@@ -78,7 +79,7 @@ void Frame::onSearchClicked() {
     }
 
     progressBar->setVisible(true);
-    progressBar->setRange(0, 0);
+    progressBar->setValue(0);
 
     buttonSearch->setEnabled(false);
     radioButtonParallelSearch->setEnabled(false);
@@ -87,29 +88,38 @@ void Frame::onSearchClicked() {
 
     QString rucString = lineEditRUC->text();
     std::string ruc = rucString.toStdString();
+    QString resultText;
 
     if (radioButtonParallelSearch->isChecked()) {
         labelResult->setText("Executing parallel search...");
 
-
-        Person person = performParallelSearch(ruc);
-        QString resultText;
+        auto [person, elapsedTime] = performParallelSearch(ruc);
         if (person.getRuc().empty()) {
             resultText = "No person found with RUC: " + rucString;
         } else {
             resultText = QString::fromStdString(person.toString());
         }
+        resultText += "\nTiempo transcurrido: " + QString::number(elapsedTime) + " ms";
         labelResult->setText(resultText);
 
     } else if (radioButtonRAMSearch->isChecked()) {
         labelResult->setText("Executing RAM search...");
-        // Call the specific function for RAM search
+
+        auto [person, elapsedTime] = performParallelMemorySearch(ruc);
+        if (person.getRuc().empty()) {
+            resultText = "No person found with RUC: " + rucString;
+        } else {
+            resultText = QString::fromStdString(person.toString());
+        }
+        resultText += "\nTiempo transcurrido: " + QString::number(elapsedTime) + " ms";
+        labelResult->setText(resultText);
+
     } else if (radioButtonSimpleSearch->isChecked()) {
         labelResult->setText("Executing simple search...");
-        // Call the specific function for simple search
     }
 
-    QTimer::singleShot(5000, [this]() {
+    QTimer::singleShot(0, [this]() {
+        progressBar->setValue(progressBar->maximum());
         progressBar->setVisible(false);
         buttonSearch->setEnabled(true);
         radioButtonParallelSearch->setEnabled(true);
