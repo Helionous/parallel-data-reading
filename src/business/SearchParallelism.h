@@ -1,9 +1,9 @@
 #ifndef SEARCH_PARALLELISM_H
 #define SEARCH_PARALLELISM_H
 
-#include <vector>
+#include <string>
 #include "Person.h"
 
-std::vector<Person> performParallelSearch();
+Person performParallelSearch(const std::string& ruc);
 
 #endif

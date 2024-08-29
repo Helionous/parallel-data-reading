@@ -1,28 +1,32 @@
 #include <QLabel>
 #include <QPushButton>
-#include <QLineEdit>
 #include <QRadioButton>
-#include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QProgressBar>
 #include <QScreen>
 #include <QTimer>
 #include <QMessageBox>
+#include <QIntValidator>
+#include <QLineEdit>
 
 #include "Frame.h"
 #include "Person.h"
 #include "SearchParallelism.h"
 
-Frame::Frame(QWidget *parent) : QWidget(parent)
-{
-    labelCriteria = new QLabel("Métodos de busqueda");
-    labelEnterRUC = new QLabel("Ingrese el RUC");
-    lineEditRUC = new QLineEdit;
+Frame::Frame(QWidget *parent) : QWidget(parent) {
+    labelCriteria = new QLabel("Métodos de búsqueda");
+    labelEnterRUC = new QLabel("Ingrese el RUC:");
 
-    radioButtonParallelSearch = new QRadioButton("BUSQUEDA POR PARALELISMO");
-    radioButtonRAMSearch = new QRadioButton("BUSQUEDA DESDE LA RAM");
-    radioButtonSimpleSearch = new QRadioButton("BUSQUEDA SIMPLE");
+    lineEditRUC = new QLineEdit();
+    QRegularExpression regex("\\d{11}");
+    validator = new QRegularExpressionValidator(regex, this);
+    lineEditRUC->setValidator(validator);
 
-    buttonSearch = new QPushButton("BUSCAR");
+    radioButtonParallelSearch = new QRadioButton("Búsqueda por Paralelismo");
+    radioButtonRAMSearch = new QRadioButton("Búsqueda desde la RAM");
+    radioButtonSimpleSearch = new QRadioButton("Búsqueda Simple");
+
+    buttonSearch = new QPushButton("Buscar");
 
     progressBar = new QProgressBar;
     progressBar->setVisible(false);
@@ -31,7 +35,7 @@ Frame::Frame(QWidget *parent) : QWidget(parent)
 
     connect(buttonSearch, &QPushButton::clicked, this, &Frame::onSearchClicked);
 
-    QHBoxLayout *layoutRadioButtons = new QHBoxLayout;
+    layoutRadioButtons = new QHBoxLayout;
     layoutRadioButtons->addWidget(radioButtonParallelSearch);
     layoutRadioButtons->addWidget(radioButtonRAMSearch);
     layoutRadioButtons->addWidget(radioButtonSimpleSearch);
@@ -39,7 +43,7 @@ Frame::Frame(QWidget *parent) : QWidget(parent)
     lineEditRUC->setFixedSize(200, 30);
     buttonSearch->setFixedSize(200, 30);
 
-    QVBoxLayout *centralLayout = new QVBoxLayout;
+    centralLayout = new QVBoxLayout;
     centralLayout->addWidget(labelCriteria);
     centralLayout->addLayout(layoutRadioButtons);
     centralLayout->addWidget(labelEnterRUC, 0, Qt::AlignCenter);
@@ -49,7 +53,7 @@ Frame::Frame(QWidget *parent) : QWidget(parent)
     centralLayout->addWidget(labelResult);
 
     setLayout(centralLayout);
-    setWindowTitle("CONSULTA RUC");
+    setWindowTitle("Consulta RUC");
     resize(700, 300);
 
     QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
@@ -58,8 +62,14 @@ Frame::Frame(QWidget *parent) : QWidget(parent)
     move(x, y);
 }
 
-void Frame::onSearchClicked()
-{
+void Frame::onSearchClicked() {
+    QString rucText = lineEditRUC->text();
+
+    if (rucText.size() != 11) {
+        QMessageBox::warning(this, "Advertencia", "El RUC debe tener exactamente 11 dígitos.");
+        return;
+    }
+
     if (!radioButtonParallelSearch->isChecked() &&
         !radioButtonRAMSearch->isChecked() &&
         !radioButtonSimpleSearch->isChecked()) {
@@ -75,13 +85,19 @@ void Frame::onSearchClicked()
     radioButtonRAMSearch->setEnabled(false);
     radioButtonSimpleSearch->setEnabled(false);
 
+    QString rucString = lineEditRUC->text();
+    std::string ruc = rucString.toStdString();
+
     if (radioButtonParallelSearch->isChecked()) {
         labelResult->setText("Executing parallel search...");
 
-        std::vector<Person> persons = performParallelSearch();
+
+        Person person = performParallelSearch(ruc);
         QString resultText;
-        for (const Person& person : persons) {
-            resultText += QString::fromStdString(person.toString()) + "\n";
+        if (person.getRuc().empty()) {
+            resultText = "No person found with RUC: " + rucString;
+        } else {
+            resultText = QString::fromStdString(person.toString());
         }
         labelResult->setText(resultText);
 

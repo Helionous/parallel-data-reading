@@ -7,7 +7,10 @@ class QLabel;
 class QPushButton;
 class QLineEdit;
 class QRadioButton;
+class QHBoxLayout;
+class QVBoxLayout;
 class QProgressBar;
+class QRegularExpressionValidator;
 
 class Frame : public QWidget {
     Q_OBJECT
@@ -28,6 +31,9 @@ private:
     QRadioButton *radioButtonSimpleSearch;
     QPushButton *buttonSearch;
     QProgressBar *progressBar;
+    QHBoxLayout *layoutRadioButtons;
+    QVBoxLayout *centralLayout;
+    QRegularExpressionValidator *validator;
 };
 
 #endif
