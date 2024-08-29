@@ -8,6 +8,7 @@
 #include <QMessageBox>
 #include <QIntValidator>
 #include <QLineEdit>
+#include <QApplication>
 
 #include "Frame.h"
 #include "Person.h"
@@ -29,7 +30,7 @@ Frame::Frame(QWidget *parent) : QWidget(parent) {
 
     buttonSearch = new QPushButton("Buscar");
 
-    progressBar = new QProgressBar;
+    progressBar = new QProgressBar(this);
     progressBar->setVisible(false);
 
     labelResult = new QLabel;
@@ -79,51 +80,58 @@ void Frame::onSearchClicked() {
     }
 
     progressBar->setVisible(true);
-    progressBar->setValue(0);
+    progressBar->setRange(0, 0);
+    QApplication::processEvents();
 
     buttonSearch->setEnabled(false);
     radioButtonParallelSearch->setEnabled(false);
     radioButtonRAMSearch->setEnabled(false);
     radioButtonSimpleSearch->setEnabled(false);
 
-    QString rucString = lineEditRUC->text();
-    std::string ruc = rucString.toStdString();
-    QString resultText;
-
     if (radioButtonParallelSearch->isChecked()) {
-        labelResult->setText("Executing parallel search...");
-
-        auto [person, elapsedTime] = performParallelSearch(ruc);
-        if (person.getRuc().empty()) {
-            resultText = "No person found with RUC: " + rucString;
-        } else {
-            resultText = QString::fromStdString(person.toString());
-        }
-        resultText += "\nTiempo transcurrido: " + QString::number(elapsedTime) + " ms";
-        labelResult->setText(resultText);
-
+        PerformParallelSearch(rucText);
     } else if (radioButtonRAMSearch->isChecked()) {
-        labelResult->setText("Executing RAM search...");
-
-        auto [person, elapsedTime] = performParallelMemorySearch(ruc);
-        if (person.getRuc().empty()) {
-            resultText = "No person found with RUC: " + rucString;
-        } else {
-            resultText = QString::fromStdString(person.toString());
-        }
-        resultText += "\nTiempo transcurrido: " + QString::number(elapsedTime) + " ms";
-        labelResult->setText(resultText);
-
+        PerformParallelMemorySearch(rucText);
     } else if (radioButtonSimpleSearch->isChecked()) {
         labelResult->setText("Executing simple search...");
     }
 
+    // Ocultar el QProgressBar y reactivar los botones
     QTimer::singleShot(0, [this]() {
-        progressBar->setValue(progressBar->maximum());
         progressBar->setVisible(false);
         buttonSearch->setEnabled(true);
         radioButtonParallelSearch->setEnabled(true);
         radioButtonRAMSearch->setEnabled(true);
         radioButtonSimpleSearch->setEnabled(true);
     });
+}
+
+void Frame::PerformParallelSearch(const QString &ruc) const
+{
+    QString resultText;
+    labelResult->setText("Executing parallel search...");
+
+    auto [person, elapsedTime] = performParallelSearch(ruc.toStdString());
+    if (person.getRuc().empty()) {
+        resultText = "No person found with RUC: " + ruc;
+    } else {
+        resultText = QString::fromStdString(person.toString());
+    }
+    resultText += "\nTiempo transcurrido: " + QString::number(elapsedTime) + " ms";
+    labelResult->setText(resultText);
+}
+
+void Frame::PerformParallelMemorySearch(const QString &ruc) const
+{
+    QString resultText;
+    labelResult->setText("Executing RAM search...");
+
+    auto [person, elapsedTime] = performParallelMemorySearch(ruc.toStdString());
+    if (person.getRuc().empty()) {
+        resultText = "No person found with RUC: " + ruc;
+    } else {
+        resultText = QString::fromStdString(person.toString());
+    }
+    resultText += "\nTiempo transcurrido: " + QString::number(elapsedTime) + " ms";
+    labelResult->setText(resultText);
 }

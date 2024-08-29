@@ -18,8 +18,10 @@ class Frame : public QWidget {
 public:
     explicit Frame(QWidget *parent = nullptr);
 
-    private slots:
-        void onSearchClicked();
+private slots:
+    void onSearchClicked();
+    void PerformParallelSearch(const QString &ruc) const;
+    void PerformParallelMemorySearch(const QString &ruc) const;
 
 private:
     QLabel *labelCriteria;

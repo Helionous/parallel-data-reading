@@ -1,5 +1,6 @@
 #include <tbb/parallel_reduce.h>
 #include <tbb/blocked_range.h>
+#include <iostream>
 #include "DetermineTime.h"
 #include "FileReader.h"
 #include "SearchParallelism.h"
@@ -54,9 +55,7 @@ pair<Person, long long> performParallelMemorySearch(const string& ruc) {
     long long startTime = DetermineTime::getCurrentMillisecondsTime();
 
     SearchRamMemory search(data, ruc);
-    parallel_reduce(
-        blocked_range<vector<Person>::const_iterator>(data.begin(), data.end()), search
-    );
+    parallel_reduce(blocked_range<vector<Person>::const_iterator>(data.begin(), data.end()), search);
 
     long long elapsedTime = DetermineTime::getMillisecondsPassed(startTime);
     return {search.getResult(), elapsedTime};
