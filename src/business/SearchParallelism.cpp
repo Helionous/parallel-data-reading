@@ -1,62 +1,49 @@
 #include "DetermineTime.h"
-#include "FileReader.h"
-#include "SearchParallelism.h"
-#include <tbb/parallel_reduce.h>
-#include <tbb/blocked_range.h>
-#include <QString>
+#include "Person.h"
+#include "ParallelFileReader.h"
+#include <vector>
+#include <string>
+#include <thread>
+#include <mutex>
+#include <atomic>
+#include <fstream>
+#include <iostream>
 
 using namespace std;
-using namespace tbb;
-
-class SearchParallellism {
-    public:
-    SearchParallellism(const vector<Person>& data, const string& ruc)
-        : data(data), ruc(ruc), found(false) {}
-
-    SearchParallellism(SearchParallellism& other, split)
-        : data(other.data), ruc(other.ruc), found(false) {}
-
-    void join(const SearchParallellism& rhs) {
-        if (rhs.found) {
-            result = rhs.result;
-            found = true;
-        }
-    }
-
-    void operator()(const blocked_range<vector<Person>::const_iterator>& range) {
-        for (auto it = range.begin(); it != range.end(); ++it) {
-            if (it->getRuc() == ruc) {
-                if (!found) {
-                    result = *it;
-                    found = true;
-                }
-                break; // Salir temprano si se encuentra
-            }
-        }
-    }
-
-    Person getResult() const {
-        return result;
-    }
-
-    private:
-        const vector<Person>& data;
-        const string& ruc;
-        Person result;
-        bool found;
-};
 
 pair<Person, long long> performParallelSearch(const string& ruc) {
-    vector<Person> data = FileReader::readPersonsFromFile("/run/media/lionos/Lion/2024-I/Parallel-Programming/unit-iii/data.txt");
-
+    string filename = "/home/lionos/Documents/padron_reducido_ruc.txt";
     long long startTime = DetermineTime::getCurrentMillisecondsTime();
 
-    SearchParallellism search(data, ruc);
-    parallel_reduce(
-        blocked_range<vector<Person>::const_iterator>(data.begin(), data.end()),search
-    );
+    Person result;
+    atomic<bool> found(false);
+    mutex resultMutex;
+
+    size_t numThreads = 8;
+    vector<thread> threads;
+    size_t fileSize;
+
+    ifstream file(filename, ios::ate | ios::binary);
+    if (!file.is_open()) {
+        cerr << "Error: No se pudo abrir el archivo." << filename << endl;
+        return {result, -1};
+    }
+    fileSize = file.tellg();
+    file.close();
+
+    size_t chunkSize = (fileSize + numThreads - 1) / numThreads;
+
+    for (size_t i = 0; i < numThreads; ++i) {
+        size_t start = i * chunkSize;
+        size_t end = min(start + chunkSize, fileSize);
+        threads.emplace_back(ParallelFileReader(filename, ruc, found, result, resultMutex), start, end);
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
 
     long long elapsedTime = DetermineTime::getMillisecondsPassed(startTime);
 
-    return {search.getResult(), elapsedTime};
+    return {result, elapsedTime};
 }

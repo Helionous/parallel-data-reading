@@ -50,8 +50,8 @@ class SearchRamMemory {
 
 
 pair<Person, long long> performParallelMemorySearch(const string& ruc) {
-    //vector<Person> data = FileReader::readPersonsFromFile("/home/lionos/Documents/padron_reducido_ruc.txt");
-    vector<Person> data = FileReader::readPersonsFromFile("/home/lionos/Documents/data.txt");
+    vector<Person> data = FileReader::readPersonsFromFile("/home/lionos/Documents/padron_reducido_ruc.txt");
+    //vector<Person> data = FileReader::readPersonsFromFile("/home/lionos/Documents/data.txt");
     long long startTime = DetermineTime::getCurrentMillisecondsTime();
 
     SearchRamMemory search(data, ruc);

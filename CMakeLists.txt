@@ -26,6 +26,8 @@ add_executable(app
         src/helper/FileReader.cpp
         src/helper/DetermineTime.cpp
         src/helper/DetermineTime.h
+        src/helper/ParallelFileReader.cpp
+        src/helper/ParallelFileReader.h
 )
 
 target_link_libraries(app
