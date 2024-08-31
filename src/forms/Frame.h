@@ -20,6 +20,7 @@ public:
 
 private slots:
     void onSearchClicked();
+    void clickedRadioButton();
     void PerformParallelSearch(const QString &ruc) const;
     void PerformParallelMemorySearch(const QString &ruc) const;
 

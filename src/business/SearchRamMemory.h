@@ -7,13 +7,16 @@
 using namespace std;
 
 class SearchRamMemory {
-    static vector<Person> persons;
 
     public:
         SearchRamMemory();
-        long loadData();
+
+        void loadData();
+        pair<Person, long> SearchByRuc(const string& ruc);
 
     private:
         mutex dataMutex;
+    public:
+        static vector<Person> persons;
 };
 #endif
