@@ -13,21 +13,21 @@ include_directories(src/business src/forms src/helper src/object src/run)
 
 add_executable(app
         src/run/Main.cpp
-        src/forms/Frame.cpp
         src/forms/Frame.h
-        src/business/SearchParallelism.cpp
+        src/forms/Frame.cpp
         src/business/SearchParallelism.h
-        src/business/SearchRamMemory.cpp
+        src/business/SearchParallelism.cpp
         src/business/SearchRamMemory.h
+        src/business/SearchRamMemory.cpp
         src/business/SearchSimple.cpp
-        src/object/Person.cpp
         src/object/Person.h
-        src/helper/FileReader.h
-        src/helper/FileReader.cpp
-        src/helper/DetermineTime.cpp
+        src/object/Person.cpp
+        src/helper/FileReaderRam.h
+        src/helper/FileReaderRam.cpp
         src/helper/DetermineTime.h
-        src/helper/ParallelFileReader.cpp
+        src/helper/DetermineTime.cpp
         src/helper/ParallelFileReader.h
+        src/helper/ParallelFileReader.cpp
 )
 
 target_link_libraries(app

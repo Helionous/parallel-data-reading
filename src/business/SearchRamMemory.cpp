@@ -1,62 +1,42 @@
-#include <tbb/parallel_reduce.h>
-#include <tbb/blocked_range.h>
+#include "FileReaderRam.h"
+#include "SearchRamMemory.h"
+#include <fstream>
 #include <iostream>
-#include "DetermineTime.h"
-#include "FileReader.h"
-#include "SearchParallelism.h"
-#include "Frame.h"
+#include <thread>
 
 using namespace std;
-using namespace tbb;
 
-class SearchRamMemory {
+vector<Person> SearchRamMemory::persons;
 
-    public:
-    SearchRamMemory(const vector<Person>& data, const string& ruc)
-        : data(data), ruc(ruc), found(false) {}
+SearchRamMemory::SearchRamMemory() = default;
 
-    SearchRamMemory(SearchRamMemory& other, split)
-        : data(other.data), ruc(other.ruc), found(false) {}
+long SearchRamMemory::loadData() {
+    string filename = "/home/lionos/Documents/padron_reducido_ruc.txt";
 
-    void join(const SearchRamMemory& rhs) {
-        if (rhs.found) {
-            result = rhs.result;
-            found = true;
-        }
+    ifstream file(filename, ios::ate | ios::binary);
+    if (!file.is_open()) {
+        cerr << "Error: No se pudo abrir el archivo " << filename << endl;
+        return 0;
     }
 
-    void operator()(const blocked_range<vector<Person>::const_iterator>& range) {
-        for (auto it = range.begin(); it != range.end(); ++it) {
-            if (it->getRuc() == ruc) {
-                if (!found) {
-                    result = *it;
-                    found = true;
-                }
-                break; // Salir temprano si se encuentra
-            }
-        }
+    size_t fileSize = file.tellg();
+    file.close();
+
+    size_t numThreads = 8;
+    size_t chunkSize = fileSize / numThreads;
+
+    vector<thread> threads;
+
+    for (size_t i = 0; i < numThreads; ++i) {
+        size_t start = i * chunkSize;
+        size_t end = (i == numThreads - 1) ? fileSize : start + chunkSize;
+
+        threads.emplace_back(&FileReaderRam::operator(), FileReaderRam(filename, start, end, dataMutex), ref(persons));
     }
 
-    Person getResult() const {
-        return result;
+    for (auto& t : threads) {
+        t.join();
     }
 
-    private:
-        const vector<Person>& data;
-        const string& ruc;
-        Person result;
-        bool found;
-};
-
-
-pair<Person, long long> performParallelMemorySearch(const string& ruc) {
-    vector<Person> data = FileReader::readPersonsFromFile("/home/lionos/Documents/padron_reducido_ruc.txt");
-    //vector<Person> data = FileReader::readPersonsFromFile("/home/lionos/Documents/data.txt");
-    long long startTime = DetermineTime::getCurrentMillisecondsTime();
-
-    SearchRamMemory search(data, ruc);
-    parallel_reduce(blocked_range<vector<Person>::const_iterator>(data.begin(), data.end()), search);
-
-    long long elapsedTime = DetermineTime::getMillisecondsPassed(startTime);
-    return {search.getResult(), elapsedTime};
+    return persons.size();
 }

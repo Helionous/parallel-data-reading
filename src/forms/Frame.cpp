@@ -106,9 +106,10 @@ void Frame::onSearchClicked() {
     });
 }
 
+QString resultText;
+
 void Frame::PerformParallelSearch(const QString &ruc) const
 {
-    QString resultText;
     labelResult->setText("Executing parallel search...");
 
     auto [person, elapsedTime] = performParallelSearch(ruc.toStdString());
@@ -123,15 +124,10 @@ void Frame::PerformParallelSearch(const QString &ruc) const
 
 void Frame::PerformParallelMemorySearch(const QString &ruc) const
 {
-    QString resultText;
     labelResult->setText("Executing RAM search...");
 
-    auto [person, elapsedTime] = performParallelMemorySearch(ruc.toStdString());
-    if (person.getRuc().empty()) {
-        resultText = "No person found with RUC: " + ruc;
-    } else {
-        resultText = QString::fromStdString(person.toString());
-    }
-    resultText += "\nTiempo transcurrido: " + QString::number(elapsedTime) + " ms";
+    SearchRamMemory search_ram_memory;
+    auto size = search_ram_memory.loadData();
+    resultText = "tamaño: " + QString::number(size);
     labelResult->setText(resultText);
 }

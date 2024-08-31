@@ -1,11 +1,19 @@
 #ifndef SEARCHRAMMEMORY_H
 #define SEARCHRAMMEMORY_H
 
-#include <string>
-#include <utility>
+#include <vector>
 #include "Person.h"
+
 using namespace std;
 
-pair<Person, long long> performParallelMemorySearch(const string& ruc);
+class SearchRamMemory {
+    static vector<Person> persons;
 
+    public:
+        SearchRamMemory();
+        long loadData();
+
+    private:
+        mutex dataMutex;
+};
 #endif
