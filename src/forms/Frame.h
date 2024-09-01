@@ -2,6 +2,7 @@
 #define FRAME_H
 
 #include <QWidget>
+#include <QScrollArea>
 
 class QLabel;
 class QPushButton;
@@ -21,8 +22,10 @@ public:
 private slots:
     void onSearchClicked();
     void clickedRadioButton();
+    void handleSearchProcess(bool);
     void PerformParallelSearch(const QString &ruc) const;
     void PerformParallelMemorySearch(const QString &ruc) const;
+    void PerformSimpleSearch(const QString &ruc) const;
 
 private:
     QLabel *labelCriteria;
@@ -37,6 +40,10 @@ private:
     QHBoxLayout *layoutRadioButtons;
     QVBoxLayout *centralLayout;
     QRegularExpressionValidator *validator;
+
+    QScrollArea *scrollArea;
+    QWidget *scrollWidget;
+    QVBoxLayout *scrollLayout;
 };
 
 #endif

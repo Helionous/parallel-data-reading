@@ -2,15 +2,12 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QHBoxLayout>
-#include <QProgressBar>
-#include <QScreen>
-#include <QTimer>
 #include <QMessageBox>
 #include <QIntValidator>
 #include <QLineEdit>
 #include <QApplication>
-#include <QProgressDialog>
 #include <QFutureWatcher>
+#include <QProgressDialog>
 
 #include "Frame.h"
 #include "Person.h"
@@ -32,10 +29,18 @@ Frame::Frame(QWidget *parent) : QWidget(parent) {
 
     buttonSearch = new QPushButton("Buscar", this);
 
-    progressBar = new QProgressBar(this);
-    progressBar->setVisible(false);
-
     labelResult = new QLabel;
+    labelResult->setWordWrap(true);
+
+    scrollArea = new QScrollArea();
+    scrollWidget = new QWidget;
+    scrollLayout = new QVBoxLayout;
+    scrollWidget->setLayout(scrollLayout);
+    scrollArea->setWidget(scrollWidget);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFixedSize(400,250);
+    scrollLayout->addWidget(labelResult);
+    scrollLayout->setSizeConstraint(QLayout::SetMinAndMaxSize);
 
     connect(buttonSearch, &QPushButton::clicked, this, &Frame::onSearchClicked);
     connect(radioButtonRAMSearch, &QRadioButton::clicked, this, &Frame::clickedRadioButton);
@@ -54,13 +59,14 @@ Frame::Frame(QWidget *parent) : QWidget(parent) {
     centralLayout->addWidget(labelEnterRUC, 0, Qt::AlignCenter);
     centralLayout->addWidget(lineEditRUC, 0, Qt::AlignCenter);
     centralLayout->addWidget(buttonSearch, 0, Qt::AlignCenter);
-    centralLayout->addWidget(progressBar);
-    centralLayout->addWidget(labelResult);
+    centralLayout->addSpacing(30);
+    centralLayout->addWidget(scrollArea, 0, Qt::AlignCenter);
 
     setLayout(centralLayout);
     setWindowTitle("Consulta RUC");
-    resize(700, 300);
+    resize(900, 500);
 }
+
 void Frame::clickedRadioButton()
 {
     if (radioButtonRAMSearch->isChecked()) {
@@ -70,9 +76,11 @@ void Frame::clickedRadioButton()
             msgBox.setIcon(QMessageBox::Question);
             msgBox.setText("Cargar datos a la memoria ram.");
             msgBox.setStandardButtons(QMessageBox::Ok);
-            QObject::connect(&msgBox, &QMessageBox::buttonClicked, this, [this](QAbstractButton* button) {
+            QObject::connect(&msgBox, &QMessageBox::buttonClicked, this,[this, &msgBox](QAbstractButton* button) {
                 if (button->text() == "OK") {
-                    QProgressDialog progressDialog("Cargando datos...", "Cancelar", 0, 0, this);
+                    msgBox.accept();
+                    QProgressDialog progressDialog("Cargando datos...", "", 0, 0, this);
+                    progressDialog.setWindowFlag(Qt::FramelessWindowHint);
                     progressDialog.setWindowModality(Qt::WindowModal);
                     progressDialog.setMinimumDuration(0);
                     progressDialog.setCancelButton(nullptr);
@@ -86,9 +94,7 @@ void Frame::clickedRadioButton()
                     while (future.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready) {
                         qApp->processEvents();
                     }
-
                     future.get();
-
                     progressDialog.hide();
                     QMessageBox::information(this, "Éxito", "Datos cargados correctamente.");
                 }
@@ -113,59 +119,122 @@ void Frame::onSearchClicked() {
         return;
     }
 
-    progressBar->setVisible(true);
-    progressBar->setRange(0, 0);
-    QApplication::processEvents();
-
-    buttonSearch->setEnabled(false);
-    radioButtonParallelSearch->setEnabled(false);
-    radioButtonRAMSearch->setEnabled(false);
-    radioButtonSimpleSearch->setEnabled(false);
-
     if (radioButtonParallelSearch->isChecked()) {
-        PerformParallelSearch(rucText);
-    } else if (radioButtonRAMSearch->isChecked()) {
-        PerformParallelMemorySearch(rucText);
-    } else if (radioButtonSimpleSearch->isChecked()) {
-        labelResult->setText("Executing simple search...");
-    }
+        QProgressDialog progressDialog("Buscando directo del archivo...", "", 0, 0, this);
+        progressDialog.setWindowFlag(Qt::FramelessWindowHint);
+        progressDialog.setWindowModality(Qt::WindowModal);
+        progressDialog.setMinimumDuration(0);
+        progressDialog.setCancelButton(nullptr);
+        progressDialog.show();
 
-    QTimer::singleShot(0, [this]() {
-        progressBar->setVisible(false);
-        buttonSearch->setEnabled(true);
-        radioButtonParallelSearch->setEnabled(true);
-        radioButtonRAMSearch->setEnabled(true);
-        radioButtonSimpleSearch->setEnabled(true);
-    });
+        handleSearchProcess(true);
+        std::future<void> future = std::async(std::launch::async, [this,rucText]() {
+            PerformParallelSearch(rucText);
+        });
+        while (future.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready) {
+            qApp->processEvents();
+        }
+        future.get();
+        progressDialog.hide();
+        handleSearchProcess(false);
+
+    } else if (radioButtonRAMSearch->isChecked()) {
+        QProgressDialog progressDialog("Buscando desde la memoria ram...", "", 0, 0, this);
+        progressDialog.setWindowFlag(Qt::FramelessWindowHint);
+        progressDialog.setWindowModality(Qt::WindowModal);
+        progressDialog.setMinimumDuration(0);
+        progressDialog.setCancelButton(nullptr);
+        progressDialog.show();
+
+        handleSearchProcess(true);
+        std::future<void> future = std::async(std::launch::async, [this,rucText]() {
+            PerformParallelMemorySearch(rucText);
+        });
+        while (future.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready) {
+            qApp->processEvents();
+        }
+        future.get();
+        progressDialog.hide();
+        handleSearchProcess(false);
+    } else if (radioButtonSimpleSearch->isChecked()) {
+        QProgressDialog progressDialog("Buscando...", "", 0, 0, this);
+        progressDialog.setWindowFlag(Qt::FramelessWindowHint);
+        progressDialog.setWindowModality(Qt::WindowModal);
+        progressDialog.setMinimumDuration(0);
+        progressDialog.setCancelButton(nullptr);
+        progressDialog.show();
+
+        handleSearchProcess(true);
+        std::future<void> future = std::async(std::launch::async, [this,rucText]() {
+            PerformSimpleSearch(rucText);
+        });
+        while (future.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready) {
+            qApp->processEvents();
+        }
+        future.get();
+        progressDialog.hide();
+        handleSearchProcess(false);
+    }
+}
+
+void Frame::handleSearchProcess(bool start) {
+    buttonSearch->setEnabled(!start);
+    radioButtonParallelSearch->setEnabled(!start);
+    radioButtonRAMSearch->setEnabled(!start);
+    radioButtonSimpleSearch->setEnabled(!start);
 }
 
 QString resultText;
-
 void Frame::PerformParallelSearch(const QString &ruc) const
 {
-    labelResult->setText("Executing parallel search...");
-
     auto [person, elapsedTime] = performParallelSearch(ruc.toStdString());
+    QString newResult;
     if (person.getRuc().empty()) {
-        resultText = "No person found with RUC: " + ruc;
+        newResult = QString("RUC NO ENCONTRADO: %1\n").arg(ruc);
     } else {
-        resultText = QString::fromStdString(person.toString());
+        newResult = QString("RUC: %1\n"
+                            "RAZON SOCIAL: %2\n"
+                            "ESTADO DEL CONTRIBUYENTE: %3\n"
+                            "CONDICION DE DOMICILIO: %4\n")
+                     .arg(QString::fromStdString(person.getRuc()))
+                     .arg(QString::fromStdString(person.getName()))
+                     .arg(QString::fromStdString(person.getStatus()))
+                     .arg(QString::fromStdString(person.getDomicileCondition()));
     }
-    resultText += "\nTiempo transcurrido: " + QString::number(elapsedTime) + " ms";
+    newResult += QString("\nTiempo de busqueda: %1 ms").arg(elapsedTime);
+    newResult += QString("\n============================================\n");
+
+    resultText = newResult + resultText; // Prepend new result
     labelResult->setText(resultText);
+    labelResult->adjustSize();
 }
 
 void Frame::PerformParallelMemorySearch(const QString &ruc) const
 {
-    labelResult->setText("Executing RAM search...");
-
     SearchRamMemory searchRamMemory;
     auto [person, elapsedTime] = searchRamMemory.SearchByRuc(ruc.toStdString());
+    QString newResult;
     if (person.getRuc().empty()) {
-        resultText = "No person found with RUC: " + ruc;
+        newResult = QString("RUC NO ENCONTRADO: %1\n").arg(ruc);
     } else {
-        resultText = QString::fromStdString(person.toString());
+        newResult = QString("RUC: %1\n"
+                            "RAZON SOCIAL: %2\n"
+                            "ESTADO DEL CONTRIBUYENTE: %3\n"
+                            "CONDICION DE DOMICILIO: %4\n")
+                     .arg(QString::fromStdString(person.getRuc()))
+                     .arg(QString::fromStdString(person.getName()))
+                     .arg(QString::fromStdString(person.getStatus()))
+                     .arg(QString::fromStdString(person.getDomicileCondition()));
     }
-    resultText += "\nTiempo transcurrido: " + QString::number(elapsedTime) + " ms";
+    newResult += QString("\nTiempo de busqueda: %1 ms").arg(elapsedTime);
+    newResult += QString("\n============================================\n");
+
+    resultText = newResult + resultText; // Prepend new result
     labelResult->setText(resultText);
+    labelResult->adjustSize();
+}
+
+void Frame::PerformSimpleSearch(const QString &ruc) const
+{
+
 }
