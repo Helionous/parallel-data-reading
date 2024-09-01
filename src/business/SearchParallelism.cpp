@@ -1,3 +1,4 @@
+#include "SearchParallelism.h"
 #include "DetermineTime.h"
 #include "Person.h"
 #include "ParallelFileReader.h"
@@ -11,9 +12,11 @@
 
 using namespace std;
 
-pair<Person, long long> performParallelSearch(const string& ruc) {
-    string filename = "/home/lionos/Documents/padron_reducido_ruc.txt";
-    long long startTime = DetermineTime::getCurrentMillisecondsTime();
+SearchParallelism::SearchParallelism(const string& filePath) : filename(filePath) {}
+
+pair<Person, long> SearchParallelism::performParallelSearch(const string& ruc) {
+    long startTime = DetermineTime::getCurrentMillisecondsTime();
+    ifstream file(filename, ios::ate | ios::binary);
 
     Person result;
     atomic<bool> found(false);
@@ -23,7 +26,6 @@ pair<Person, long long> performParallelSearch(const string& ruc) {
     vector<thread> threads;
     size_t fileSize;
 
-    ifstream file(filename, ios::ate | ios::binary);
     if (!file.is_open()) {
         cerr << "Error: No se pudo abrir el archivo." << filename << endl;
         return {result, -1};
@@ -43,7 +45,7 @@ pair<Person, long long> performParallelSearch(const string& ruc) {
         t.join();
     }
 
-    long long elapsedTime = DetermineTime::getMillisecondsPassed(startTime);
+    long elapsedTime = DetermineTime::getMillisecondsPassed(startTime);
 
     return {result, elapsedTime};
 }

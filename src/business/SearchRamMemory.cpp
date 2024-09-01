@@ -8,12 +8,11 @@
 
 using namespace std;
 
+SearchRamMemory::SearchRamMemory(const string& filePath) : filename(filePath) {}
+
 vector<Person> SearchRamMemory::persons;
 
-SearchRamMemory::SearchRamMemory() = default;
-
 void SearchRamMemory::loadData() {
-    string filename = "/home/lionos/Documents/padron_reducido_ruc.txt";
 
     ifstream file(filename, ios::ate | ios::binary);
     if (!file.is_open()) {

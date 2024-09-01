@@ -6,7 +6,6 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-find_package(TBB REQUIRED)
 find_package(Qt6 COMPONENTS Core Widgets REQUIRED)
 
 include_directories(src/business src/forms src/helper src/object src/run)
@@ -28,10 +27,10 @@ add_executable(app
         src/helper/DetermineTime.cpp
         src/helper/ParallelFileReader.h
         src/helper/ParallelFileReader.cpp
+        src/business/SearchSimple.h
 )
 
 target_link_libraries(app
         Qt::Core
         Qt6::Widgets
-        TBB::tbb
 )

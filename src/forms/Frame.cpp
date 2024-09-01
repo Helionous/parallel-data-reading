@@ -13,6 +13,9 @@
 #include "Person.h"
 #include "SearchParallelism.h"
 #include "SearchRamMemory.h"
+#include "SearchSimple.h"
+
+string fileName = "/home/lionos/Documents/data.txt";
 
 Frame::Frame(QWidget *parent) : QWidget(parent) {
     labelCriteria = new QLabel("Métodos de búsqueda");
@@ -87,7 +90,7 @@ void Frame::clickedRadioButton()
                     progressDialog.show();
 
                     std::future<void> future = std::async(std::launch::async, []() {
-                        SearchRamMemory searchRamMemory;
+                        SearchRamMemory searchRamMemory(fileName);
                         searchRamMemory.loadData();
                     });
 
@@ -187,7 +190,8 @@ void Frame::handleSearchProcess(bool start) {
 QString resultText;
 void Frame::PerformParallelSearch(const QString &ruc) const
 {
-    auto [person, elapsedTime] = performParallelSearch(ruc.toStdString());
+    SearchParallelism searchParallelism(fileName);
+    auto [person, elapsedTime] = searchParallelism.performParallelSearch(ruc.toStdString());
     QString newResult;
     if (person.getRuc().empty()) {
         newResult = QString("RUC NO ENCONTRADO: %1\n").arg(ruc);
@@ -201,17 +205,17 @@ void Frame::PerformParallelSearch(const QString &ruc) const
                      .arg(QString::fromStdString(person.getStatus()))
                      .arg(QString::fromStdString(person.getDomicileCondition()));
     }
-    newResult += QString("\nTiempo de busqueda: %1 ms").arg(elapsedTime);
+    newResult += QString("\nTiempo de busqueda (lectura en paralelo): %1 ms").arg(elapsedTime);
     newResult += QString("\n============================================\n");
 
-    resultText = newResult + resultText; // Prepend new result
+    resultText = newResult + resultText;
     labelResult->setText(resultText);
     labelResult->adjustSize();
 }
 
 void Frame::PerformParallelMemorySearch(const QString &ruc) const
 {
-    SearchRamMemory searchRamMemory;
+    SearchRamMemory searchRamMemory(fileName);
     auto [person, elapsedTime] = searchRamMemory.SearchByRuc(ruc.toStdString());
     QString newResult;
     if (person.getRuc().empty()) {
@@ -226,15 +230,35 @@ void Frame::PerformParallelMemorySearch(const QString &ruc) const
                      .arg(QString::fromStdString(person.getStatus()))
                      .arg(QString::fromStdString(person.getDomicileCondition()));
     }
-    newResult += QString("\nTiempo de busqueda: %1 ms").arg(elapsedTime);
+    newResult += QString("\nTiempo de busqueda (memoria ram): %1 ms").arg(elapsedTime);
     newResult += QString("\n============================================\n");
 
-    resultText = newResult + resultText; // Prepend new result
+    resultText = newResult + resultText;
     labelResult->setText(resultText);
     labelResult->adjustSize();
 }
 
 void Frame::PerformSimpleSearch(const QString &ruc) const
 {
+    SearchSimple searchSimple(fileName);
+    auto [person, elapsedTime] = searchSimple.searchSimpleByRuc(ruc.toStdString());
+    QString newResult;
+    if (person.getRuc().empty()) {
+        newResult = QString("RUC NO ENCONTRADO: %1\n").arg(ruc);
+    } else {
+        newResult = QString("RUC: %1\n"
+                            "RAZON SOCIAL: %2\n"
+                            "ESTADO DEL CONTRIBUYENTE: %3\n"
+                            "CONDICION DE DOMICILIO: %4\n")
+                     .arg(QString::fromStdString(person.getRuc()))
+                     .arg(QString::fromStdString(person.getName()))
+                     .arg(QString::fromStdString(person.getStatus()))
+                     .arg(QString::fromStdString(person.getDomicileCondition()));
+    }
+    newResult += QString("\nTiempo de busqueda (simple): %1 ms").arg(elapsedTime);
+    newResult += QString("\n============================================\n");
 
+    resultText = newResult + resultText;
+    labelResult->setText(resultText);
+    labelResult->adjustSize();
 }

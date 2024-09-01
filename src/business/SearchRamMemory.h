@@ -9,13 +9,14 @@ using namespace std;
 class SearchRamMemory {
 
     public:
-        SearchRamMemory();
+        SearchRamMemory(const string& filePath);
 
         void loadData();
         pair<Person, long> SearchByRuc(const string& ruc);
 
     private:
         mutex dataMutex;
+        string filename;
     public:
         static vector<Person> persons;
 };

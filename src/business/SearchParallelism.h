@@ -2,11 +2,17 @@
 #define SEARCH_PARALLELISM_H
 
 #include <string>
-#include <utility>
 #include "Person.h"
 
 using namespace std;
 
-pair<Person, long long> performParallelSearch(const string& ruc);
+class SearchParallelism {
+    public:
+        SearchParallelism(const string& filePath);
 
+        pair<Person, long> performParallelSearch(const string& ruc);
+
+    private:
+        const string filename;
+};
 #endif
