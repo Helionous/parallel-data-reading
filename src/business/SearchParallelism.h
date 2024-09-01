@@ -4,6 +4,15 @@
 #include <string>
 #include "Person.h"
 
-Person performParallelSearch(const std::string& ruc);
+using namespace std;
 
+class SearchParallelism {
+    public:
+        SearchParallelism(const string& filePath);
+
+        pair<Person, long> performParallelSearch(const string& ruc);
+
+    private:
+        const string filename;
+};
 #endif

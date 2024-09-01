@@ -1,56 +1,51 @@
 #include "SearchParallelism.h"
-#include "FileReader.h"
-#include <tbb/parallel_reduce.h>
-#include <tbb/blocked_range.h>
+#include "DetermineTime.h"
+#include "Person.h"
+#include "ParallelFileReader.h"
+#include <vector>
+#include <string>
+#include <thread>
+#include <mutex>
+#include <atomic>
+#include <fstream>
+#include <iostream>
 
-class RUCSearch {
+using namespace std;
 
-public:
-    RUCSearch(const std::vector<Person>& data, const std::string& ruc)
-        : data(data), ruc(ruc), result(), found(false) {}
+SearchParallelism::SearchParallelism(const string& filePath) : filename(filePath) {}
 
-    RUCSearch(RUCSearch& other, tbb::split)
-        : data(other.data), ruc(other.ruc), result(), found(false) {}
+pair<Person, long> SearchParallelism::performParallelSearch(const string& ruc) {
+    long startTime = DetermineTime::getCurrentMillisecondsTime();
+    ifstream file(filename, ios::ate | ios::binary);
 
-    void join(const RUCSearch& rhs) {
-        if (rhs.found) {
-            result = rhs.result;
-            found = true;
-        }
-    }
-
-    void operator()(const tbb::blocked_range<std::vector<Person>::const_iterator>& range) {
-        for (auto it = range.begin(); it != range.end(); ++it) {
-            if (it->getRuc() == ruc) {
-                if (!found) {
-                    result = *it;
-                    found = true;
-                }
-                break; // Salir temprano si se encuentra
-            }
-        }
-    }
-
-    Person getResult() const {
-        return result;
-    }
-
-private:
-    const std::vector<Person>& data;
-    const std::string& ruc;
     Person result;
-    bool found;
-};
+    atomic<bool> found(false);
+    mutex resultMutex;
 
-Person performParallelSearch(const std::string& ruc) {
-    FileReader reader;
-    std::vector<Person> data = reader.readPersonsFromFile("/run/media/lionos/Lion/2024-I/Parallel-Programming/unit-iii/data.txt");
+    size_t numThreads = 8;
+    vector<thread> threads;
+    size_t fileSize;
 
-    RUCSearch search(data, ruc);
-    tbb::parallel_reduce(
-        tbb::blocked_range<std::vector<Person>::const_iterator>(data.begin(), data.end()),
-        search
-    );
+    if (!file.is_open()) {
+        cerr << "Error: No se pudo abrir el archivo." << filename << endl;
+        return {result, -1};
+    }
+    fileSize = file.tellg();
+    file.close();
 
-    return search.getResult();
+    size_t chunkSize = (fileSize + numThreads - 1) / numThreads;
+
+    for (size_t i = 0; i < numThreads; ++i) {
+        size_t start = i * chunkSize;
+        size_t end = min(start + chunkSize, fileSize);
+        threads.emplace_back(ParallelFileReader(filename, ruc, found, result, resultMutex), start, end);
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    long elapsedTime = DetermineTime::getMillisecondsPassed(startTime);
+
+    return {result, elapsedTime};
 }
