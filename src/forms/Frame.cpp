@@ -8,66 +8,112 @@
 #include <QApplication>
 #include <QFutureWatcher>
 #include <QProgressDialog>
+#include <QtConcurrent>
 
 #include "Frame.h"
 #include "Person.h"
 #include "SearchParallelism.h"
 #include "SearchRamMemory.h"
 #include "SearchSimple.h"
-
-string fileName = "/home/lionos/Documents/data.txt";
+#include "GlobalVar.h"
 
 Frame::Frame(QWidget *parent) : QWidget(parent) {
-    labelCriteria = new QLabel("Métodos de búsqueda");
-    labelEnterRUC = new QLabel("Ingrese el RUC:");
+    setStyleSheet("background-color: #121212; color: #e0e0e0;");
 
     lineEditRUC = new QLineEdit();
     QRegularExpression regex("\\d{11}");
     validator = new QRegularExpressionValidator(regex, this);
     lineEditRUC->setValidator(validator);
-
-    radioButtonParallelSearch = new QRadioButton("Búsqueda por Paralelismo", this);
-    radioButtonRAMSearch = new QRadioButton("Búsqueda desde la RAM", this);
-    radioButtonSimpleSearch = new QRadioButton("Búsqueda Simple", this);
+    lineEditRUC->setFixedSize(350, 40);
+    lineEditRUC->setStyleSheet("background-color: #333333; border: 2px solid #4caf50; border-radius: 8px; padding: 5px; color: #e0e0e0;");
 
     buttonSearch = new QPushButton("Buscar", this);
+    buttonSearch->setFixedSize(100, 40);
+    buttonSearch->setStyleSheet("background-color: #4caf50; color: #ffffff; border: 2px solid #4caf50; border-radius: 8px;");
+
+    QFont font = lineEditRUC->font();
+    font.setPointSize(16);
+    lineEditRUC->setFont(font);
+    buttonSearch->setFont(font);
+
+    QHBoxLayout *searchRowLayout = new QHBoxLayout;
+    searchRowLayout->addWidget(lineEditRUC);
+    searchRowLayout->addWidget(buttonSearch);
+    searchRowLayout->setSpacing(10);
+    searchRowLayout->setAlignment(Qt::AlignCenter);
+
+    QHBoxLayout *radioButtonsRowLayout = new QHBoxLayout;
+    radioButtonParallelSearch = new QRadioButton("Lectura paralela", this);
+    radioButtonRAMSearch = new QRadioButton("Desde la memoria ram", this);
+    radioButtonSimpleSearch = new QRadioButton("Lectura Simple", this);
+
+    radioButtonParallelSearch->setStyleSheet("color: #bb86fc;");
+    radioButtonRAMSearch->setStyleSheet("color: #03dac6;");
+    radioButtonSimpleSearch->setStyleSheet("color: #ff80ab;");
+
+    radioButtonsRowLayout->addWidget(radioButtonParallelSearch);
+    radioButtonsRowLayout->addWidget(radioButtonRAMSearch);
+    radioButtonsRowLayout->addWidget(radioButtonSimpleSearch);
+    radioButtonsRowLayout->setSpacing(5);
+    radioButtonsRowLayout->setAlignment(Qt::AlignCenter);
+
+    QVBoxLayout *searchAndRadioLayout = new QVBoxLayout;
+    searchAndRadioLayout->addLayout(searchRowLayout);
+    searchAndRadioLayout->addLayout(radioButtonsRowLayout);
 
     labelResult = new QLabel;
     labelResult->setWordWrap(true);
-
     scrollArea = new QScrollArea();
     scrollWidget = new QWidget;
     scrollLayout = new QVBoxLayout;
     scrollWidget->setLayout(scrollLayout);
     scrollArea->setWidget(scrollWidget);
     scrollArea->setWidgetResizable(true);
-    scrollArea->setFixedSize(400,250);
+    scrollArea->setFixedSize(500, 380);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     scrollLayout->addWidget(labelResult);
     scrollLayout->setSizeConstraint(QLayout::SetMinAndMaxSize);
+    scrollArea->setVisible(false);
+
+    scrollArea->setStyleSheet(
+        "QScrollArea {"
+        "  border: none;"
+        "  background-color: #1e1e1e;"
+        "}"
+        "QScrollBar:vertical {"
+        "  border: none;"
+        "  background: #2c2c2c;"
+        "  width: 12px;"
+        "  border-radius: 6px;"
+        "}"
+        "QScrollBar::handle:vertical {"
+        "  background: #4caf50;"
+        "  border-radius: 6px;"
+        "}"
+        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {"
+        "  background: #2c2c2c;"
+        "  border: none;"
+        "  border-radius: 6px;"
+        "}"
+        "QScrollBar::add-line:vertical {"
+        "  border-image: url(:/icons/arrow-down.png) 0;"
+        "}"
+        "QScrollBar::sub-line:vertical {"
+        "  border-image: url(:/icons/arrow-up.png) 0;"
+        "}"
+    );
+
+    QHBoxLayout *centralLayout = new QHBoxLayout;
+    centralLayout->addLayout(searchAndRadioLayout);
+    centralLayout->addWidget(scrollArea);
+    setLayout(centralLayout);
+
+    setWindowTitle("Buscador por RUC");
+    resize(1100, 400);
 
     connect(buttonSearch, &QPushButton::clicked, this, &Frame::onSearchClicked);
     connect(radioButtonRAMSearch, &QRadioButton::clicked, this, &Frame::clickedRadioButton);
-
-    layoutRadioButtons = new QHBoxLayout;
-    layoutRadioButtons->addWidget(radioButtonParallelSearch);
-    layoutRadioButtons->addWidget(radioButtonRAMSearch);
-    layoutRadioButtons->addWidget(radioButtonSimpleSearch);
-
-    lineEditRUC->setFixedSize(200, 30);
-    buttonSearch->setFixedSize(200, 30);
-
-    centralLayout = new QVBoxLayout;
-    centralLayout->addWidget(labelCriteria);
-    centralLayout->addLayout(layoutRadioButtons);
-    centralLayout->addWidget(labelEnterRUC, 0, Qt::AlignCenter);
-    centralLayout->addWidget(lineEditRUC, 0, Qt::AlignCenter);
-    centralLayout->addWidget(buttonSearch, 0, Qt::AlignCenter);
-    centralLayout->addSpacing(30);
-    centralLayout->addWidget(scrollArea, 0, Qt::AlignCenter);
-
-    setLayout(centralLayout);
-    setWindowTitle("Consulta RUC");
-    resize(900, 500);
+    connect(this, &Frame::searchCompleted, this, &Frame::updateResult);
 }
 
 void Frame::clickedRadioButton()
@@ -90,7 +136,7 @@ void Frame::clickedRadioButton()
                     progressDialog.show();
 
                     std::future<void> future = std::async(std::launch::async, []() {
-                        SearchRamMemory searchRamMemory(fileName);
+                        SearchRamMemory searchRamMemory(filePathToProcess);
                         searchRamMemory.loadData();
                     });
 
@@ -107,6 +153,13 @@ void Frame::clickedRadioButton()
     }
 }
 
+void Frame::handleSearchProcess(bool start) {
+    buttonSearch->setEnabled(!start);
+    radioButtonParallelSearch->setEnabled(!start);
+    radioButtonRAMSearch->setEnabled(!start);
+    radioButtonSimpleSearch->setEnabled(!start);
+}
+
 void Frame::onSearchClicked() {
     QString rucText = lineEditRUC->text();
 
@@ -120,145 +173,134 @@ void Frame::onSearchClicked() {
         !radioButtonSimpleSearch->isChecked()) {
         QMessageBox::warning(this, "Advertencia", "Por favor, seleccione un método de búsqueda.");
         return;
-    }
+        }
+
+    QProgressDialog progressDialog("Buscando...", "", 0, 0, this);
+    progressDialog.setWindowFlag(Qt::FramelessWindowHint);
+    progressDialog.setWindowModality(Qt::WindowModal);
+    progressDialog.setMinimumDuration(0);
+    progressDialog.setCancelButton(nullptr);
+    progressDialog.show();
+
+    handleSearchProcess(true);
+
+    std::future<void> future;
 
     if (radioButtonParallelSearch->isChecked()) {
-        QProgressDialog progressDialog("Buscando directo del archivo...", "", 0, 0, this);
-        progressDialog.setWindowFlag(Qt::FramelessWindowHint);
-        progressDialog.setWindowModality(Qt::WindowModal);
-        progressDialog.setMinimumDuration(0);
-        progressDialog.setCancelButton(nullptr);
-        progressDialog.show();
-
-        handleSearchProcess(true);
-        std::future<void> future = std::async(std::launch::async, [this,rucText]() {
+        future = std::async(std::launch::async, [this, rucText]() {
             PerformParallelSearch(rucText);
         });
-        while (future.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready) {
-            qApp->processEvents();
-        }
-        future.get();
-        progressDialog.hide();
-        handleSearchProcess(false);
-
     } else if (radioButtonRAMSearch->isChecked()) {
-        QProgressDialog progressDialog("Buscando desde la memoria ram...", "", 0, 0, this);
-        progressDialog.setWindowFlag(Qt::FramelessWindowHint);
-        progressDialog.setWindowModality(Qt::WindowModal);
-        progressDialog.setMinimumDuration(0);
-        progressDialog.setCancelButton(nullptr);
-        progressDialog.show();
-
-        handleSearchProcess(true);
-        std::future<void> future = std::async(std::launch::async, [this,rucText]() {
+        future = std::async(std::launch::async, [this, rucText]() {
             PerformParallelMemorySearch(rucText);
         });
-        while (future.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready) {
-            qApp->processEvents();
-        }
-        future.get();
-        progressDialog.hide();
-        handleSearchProcess(false);
     } else if (radioButtonSimpleSearch->isChecked()) {
-        QProgressDialog progressDialog("Buscando...", "", 0, 0, this);
-        progressDialog.setWindowFlag(Qt::FramelessWindowHint);
-        progressDialog.setWindowModality(Qt::WindowModal);
-        progressDialog.setMinimumDuration(0);
-        progressDialog.setCancelButton(nullptr);
-        progressDialog.show();
-
-        handleSearchProcess(true);
-        std::future<void> future = std::async(std::launch::async, [this,rucText]() {
+        future = std::async(std::launch::async, [this, rucText]() {
             PerformSimpleSearch(rucText);
         });
-        while (future.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready) {
-            qApp->processEvents();
-        }
-        future.get();
-        progressDialog.hide();
-        handleSearchProcess(false);
     }
+
+    while (future.wait_for(std::chrono::milliseconds(100)) != std::future_status::ready) {
+        qApp->processEvents();
+    }
+    future.get();
+    progressDialog.hide();
+    handleSearchProcess(false);
 }
 
-void Frame::handleSearchProcess(bool start) {
-    buttonSearch->setEnabled(!start);
-    radioButtonParallelSearch->setEnabled(!start);
-    radioButtonRAMSearch->setEnabled(!start);
-    radioButtonSimpleSearch->setEnabled(!start);
+
+void Frame::updateResult(const QString &result) {
+    resultText = result + resultText;
+    labelResult->setText(resultText);
+    labelResult->adjustSize();
 }
 
-QString resultText;
-void Frame::PerformParallelSearch(const QString &ruc) const
-{
-    SearchParallelism searchParallelism(fileName);
+void Frame::PerformParallelSearch(const QString &ruc){
+    scrollArea->setVisible(true);
+    SearchParallelism searchParallelism(filePathToProcess);
     auto [person, elapsedTime] = searchParallelism.performParallelSearch(ruc.toStdString());
+
     QString newResult;
     if (person.getRuc().empty()) {
-        newResult = QString("RUC NO ENCONTRADO: %1\n").arg(ruc);
+        newResult = QString("<font color='#bb86fc'>RUC NO ENCONTRADO: %1</font><br>").arg(ruc);
     } else {
-        newResult = QString("RUC: %1\n"
-                            "RAZON SOCIAL: %2\n"
-                            "ESTADO DEL CONTRIBUYENTE: %3\n"
-                            "CONDICION DE DOMICILIO: %4\n")
+        QString statusColor = (person.getStatus() == "ACTIVO") ? "#4caf50" : "orange";
+        QString domicileColor = (person.getDomicileCondition() == "HABIDO") ? "#4caf50" : "orange";
+        newResult = QString("<font color='#bb86fc'>"
+                            "RUC: <font color='#4caf50'>%1</font><br>"
+                            "RAZON SOCIAL: <font color='#4caf50'>%2</font><br>"
+                            "ESTADO DEL CONTRIBUYENTE: <font color='%3'>%4</font><br>"
+                            "CONDICION DE DOMICILIO: <font color='%5'>%6</font><br></font>")
                      .arg(QString::fromStdString(person.getRuc()))
                      .arg(QString::fromStdString(person.getName()))
+                     .arg(statusColor)
                      .arg(QString::fromStdString(person.getStatus()))
+                     .arg(domicileColor)
                      .arg(QString::fromStdString(person.getDomicileCondition()));
     }
-    newResult += QString("\nTiempo de busqueda (lectura en paralelo): %1 ms").arg(elapsedTime);
-    newResult += QString("\n============================================\n");
 
-    resultText = newResult + resultText;
-    labelResult->setText(resultText);
-    labelResult->adjustSize();
+    newResult += QString("<br>Tiempo de búsqueda (lectura en paralelo): %1 ms<br>").arg(elapsedTime);
+    newResult += QString("<br>────────────────────────────<br>");
+
+    emit searchCompleted(newResult);
 }
 
-void Frame::PerformParallelMemorySearch(const QString &ruc) const
-{
-    SearchRamMemory searchRamMemory(fileName);
+void Frame::PerformParallelMemorySearch(const QString &ruc){
+    scrollArea->setVisible(true);
+    SearchRamMemory searchRamMemory(filePathToProcess);
     auto [person, elapsedTime] = searchRamMemory.SearchByRuc(ruc.toStdString());
+
     QString newResult;
     if (person.getRuc().empty()) {
-        newResult = QString("RUC NO ENCONTRADO: %1\n").arg(ruc);
+        newResult = QString("<font color='#03dac6'>RUC NO ENCONTRADO: %1</font><br>").arg(ruc);
     } else {
-        newResult = QString("RUC: %1\n"
-                            "RAZON SOCIAL: %2\n"
-                            "ESTADO DEL CONTRIBUYENTE: %3\n"
-                            "CONDICION DE DOMICILIO: %4\n")
+        QString statusColor = (person.getStatus() == "ACTIVO") ? "#4caf50" : "orange";
+        QString domicileColor = (person.getDomicileCondition() == "HABIDO") ? "#4caf50" : "orange";
+        newResult = QString("<font color='#03dac6'>"
+                            "RUC: <font color='#4caf50'>%1</font><br>"
+                            "RAZON SOCIAL: <font color='#4caf50'>%2</font><br>"
+                            "ESTADO DEL CONTRIBUYENTE: <font color='%3'>%4</font><br>"
+                            "CONDICION DE DOMICILIO: <font color='%5'>%6</font><br></font>")
                      .arg(QString::fromStdString(person.getRuc()))
                      .arg(QString::fromStdString(person.getName()))
+                     .arg(statusColor)
                      .arg(QString::fromStdString(person.getStatus()))
+                     .arg(domicileColor)
                      .arg(QString::fromStdString(person.getDomicileCondition()));
     }
-    newResult += QString("\nTiempo de busqueda (memoria ram): %1 ms").arg(elapsedTime);
-    newResult += QString("\n============================================\n");
 
-    resultText = newResult + resultText;
-    labelResult->setText(resultText);
-    labelResult->adjustSize();
+    newResult += QString("<br>Tiempo de búsqueda (lectura en paralelo): %1 ms<br>").arg(elapsedTime);
+    newResult += QString("<br>────────────────────────────<br>");
+
+    emit searchCompleted(newResult);
 }
 
-void Frame::PerformSimpleSearch(const QString &ruc) const
-{
-    SearchSimple searchSimple(fileName);
+void Frame::PerformSimpleSearch(const QString &ruc){
+    scrollArea->setVisible(true);
+    SearchSimple searchSimple(filePathToProcess);
     auto [person, elapsedTime] = searchSimple.searchSimpleByRuc(ruc.toStdString());
+
     QString newResult;
     if (person.getRuc().empty()) {
-        newResult = QString("RUC NO ENCONTRADO: %1\n").arg(ruc);
+        newResult = QString("<font color='#ff80ab'>RUC NO ENCONTRADO: %1</font><br>").arg(ruc);
     } else {
-        newResult = QString("RUC: %1\n"
-                            "RAZON SOCIAL: %2\n"
-                            "ESTADO DEL CONTRIBUYENTE: %3\n"
-                            "CONDICION DE DOMICILIO: %4\n")
+        QString statusColor = (person.getStatus() == "ACTIVO") ? "#4caf50" : "orange";
+        QString domicileColor = (person.getDomicileCondition() == "HABIDO") ? "#4caf50" : "orange";
+        newResult = QString("<font color='#ff80ab'>"
+                            "RUC: <font color='#4caf50'>%1</font><br>"
+                            "RAZON SOCIAL: <font color='#4caf50'>%2</font><br>"
+                            "ESTADO DEL CONTRIBUYENTE: <font color='%3'>%4</font><br>"
+                            "CONDICION DE DOMICILIO: <font color='%5'>%6</font><br></font>")
                      .arg(QString::fromStdString(person.getRuc()))
                      .arg(QString::fromStdString(person.getName()))
+                     .arg(statusColor)
                      .arg(QString::fromStdString(person.getStatus()))
+                     .arg(domicileColor)
                      .arg(QString::fromStdString(person.getDomicileCondition()));
     }
-    newResult += QString("\nTiempo de busqueda (simple): %1 ms").arg(elapsedTime);
-    newResult += QString("\n============================================\n");
 
-    resultText = newResult + resultText;
-    labelResult->setText(resultText);
-    labelResult->adjustSize();
+    newResult += QString("<br>Tiempo de búsqueda (lectura en paralelo): %1 ms<br>").arg(elapsedTime);
+    newResult += QString("<br>────────────────────────────<br>");
+
+    emit searchCompleted(newResult);
 }

@@ -1,7 +1,3 @@
-#include "SearchParallelism.h"
-#include "DetermineTime.h"
-#include "Person.h"
-#include "ParallelFileReader.h"
 #include <vector>
 #include <string>
 #include <thread>
@@ -9,6 +5,12 @@
 #include <atomic>
 #include <fstream>
 #include <iostream>
+
+#include "SearchParallelism.h"
+#include "DetermineTime.h"
+#include "Person.h"
+#include "ParallelFileReader.h"
+#include "GlobalVar.h"
 
 using namespace std;
 
@@ -22,7 +24,7 @@ pair<Person, long> SearchParallelism::performParallelSearch(const string& ruc) {
     atomic<bool> found(false);
     mutex resultMutex;
 
-    size_t numThreads = 8;
+    size_t numThreads = numberOfThreads;
     vector<thread> threads;
     size_t fileSize;
 

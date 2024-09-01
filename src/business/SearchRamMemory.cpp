@@ -1,10 +1,12 @@
+#include <fstream>
+#include <iostream>
+#include <thread>
+
 #include "FileReaderRam.h"
 #include "SearchRamMemory.h"
 #include "DetermineTime.h"
 #include "Person.h"
-#include <fstream>
-#include <iostream>
-#include <thread>
+#include "GlobalVar.h"
 
 using namespace std;
 
@@ -22,7 +24,7 @@ void SearchRamMemory::loadData() {
     size_t fileSize = file.tellg();
     file.close();
 
-    size_t numThreads = 8;
+    size_t numThreads = numberOfThreads;
     size_t chunkSize = fileSize / numThreads;
 
     vector<thread> threads;
@@ -81,6 +83,6 @@ pair<Person, long> SearchRamMemory::SearchByRuc(const string& ruc)
         }
     }
 
-    long long elapsedTime = DetermineTime::getMillisecondsPassed(startTime);
+    long elapsedTime = DetermineTime::getMillisecondsPassed(startTime);
     return {result, elapsedTime};
 }

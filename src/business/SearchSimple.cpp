@@ -48,9 +48,9 @@ Person SearchSimple::dataReading(const string& ruc) {
 }
 
 pair<Person, long> SearchSimple::searchSimpleByRuc(const string& ruc) {
-    long long startTime = DetermineTime::getCurrentMillisecondsTime();
+    long startTime = DetermineTime::getCurrentMillisecondsTime();
     Person result = dataReading(ruc);
-    long long elapsedTime = DetermineTime::getMillisecondsPassed(startTime);
+    long elapsedTime = DetermineTime::getMillisecondsPassed(startTime);
 
     return {result, elapsedTime};
 }

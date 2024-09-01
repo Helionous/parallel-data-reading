@@ -3,8 +3,8 @@
 
 class DetermineTime {
 public:
-    static long long getCurrentMillisecondsTime();
-    static long long getMillisecondsPassed(long long initTime);
+    static long getCurrentMillisecondsTime();
+    static long getMillisecondsPassed(long initTime);
 };
 
 #endif
