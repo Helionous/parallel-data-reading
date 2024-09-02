@@ -133,6 +133,29 @@ void Frame::clickedRadioButton()
                     progressDialog.setWindowModality(Qt::WindowModal);
                     progressDialog.setMinimumDuration(0);
                     progressDialog.setCancelButton(nullptr);
+                    progressDialog.setStyleSheet(
+                        "QProgressDialog { "
+                        "    background-color: #1e1e1e; "
+                        "    border: 2px solid #27ae60; "
+                        "    border-radius: 3px; "
+                        "    padding: 20px; "
+                        "}"
+                        "QLabel { "
+                        "    color: #ffffff; "
+                        "    background-color: transparent; "
+                        "    padding: 5px; "
+                        "}"
+                        "QProgressBar { "
+                        "    border: none; "
+                        "    border-radius: 8px; "
+                        "    height: 10px; "
+                        "    background-color: #333333; "
+                        "}"
+                        "QProgressBar::chunk { "
+                        "    background-color: #4caf50; "
+                        "    border-radius: 8px; "
+                        "}"
+                    );
                     progressDialog.show();
 
                     std::future<void> future = std::async(std::launch::async, []() {
@@ -180,6 +203,29 @@ void Frame::onSearchClicked() {
     progressDialog.setWindowModality(Qt::WindowModal);
     progressDialog.setMinimumDuration(0);
     progressDialog.setCancelButton(nullptr);
+    progressDialog.setStyleSheet(
+        "QProgressDialog { "
+        "    background-color: #1e1e1e; "
+        "    border: 2px solid #27ae60; "
+        "    border-radius: 3px; "
+        "    padding: 20px; "
+        "}"
+        "QLabel { "
+        "    color: #ffffff; "
+        "    background-color: transparent; "
+        "    padding: 5px; "
+        "}"
+        "QProgressBar { "
+        "    border: none; "
+        "    border-radius: 8px; "
+        "    height: 10px; "
+        "    background-color: #333333; "
+        "}"
+        "QProgressBar::chunk { "
+        "    background-color: #4caf50; "
+        "    border-radius: 8px; "
+        "}"
+    );
     progressDialog.show();
 
     handleSearchProcess(true);
